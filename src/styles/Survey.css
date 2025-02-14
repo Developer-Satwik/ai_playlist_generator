@@ -1,0 +1,139 @@
+.survey {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 800px;
+  margin: 2rem auto;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.survey-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color);
+  font-size: 1.1rem;
+}
+
+.survey-progress {
+  margin-bottom: 2rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.question-container {
+  margin-bottom: 2rem;
+}
+
+.question-container h3 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.range-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.range-container input[type="range"] {
+  flex: 1;
+  height: 6px;
+  background: var(--secondary-color);
+  border-radius: 3px;
+  appearance: none;
+}
+
+.range-container input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--glass-bg);
+  box-shadow: var(--luxury-shadow);
+}
+
+.range-value {
+  min-width: 3rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--secondary-color);
+  border-radius: 8px;
+  color: var(--text-color);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.survey select,
+.survey input[type="text"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--secondary-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  color: var(--text-color);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.survey select:hover,
+.survey input[type="text"]:hover {
+  border-color: var(--text-color);
+}
+
+.survey select:focus,
+.survey input[type="text"]:focus {
+  outline: none;
+  border-color: var(--text-color);
+  box-shadow: var(--luxury-shadow);
+}
+
+.survey-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.survey-navigation button {
+  padding: 0.75rem 1.5rem;
+  background: var(--secondary-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  color: var(--text-color);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.survey-navigation button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--text-color);
+  background: var(--accent-color);
+}
+
+.survey-navigation button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .survey {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .survey-navigation {
+    flex-direction: column;
+  }
+
+  .survey-navigation button {
+    width: 100%;
+  }
+}
