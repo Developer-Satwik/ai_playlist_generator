@@ -63,6 +63,8 @@ body {
   background: var(--primary-bg);
   color: var(--text-primary);
   display: flex;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -70,8 +72,9 @@ body {
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   transition: margin-left 0.3s ease;
-  padding: 2rem;
   background: var(--primary-bg);
+  position: relative;
+  z-index: 1;
 }
 
 .main-content.sidebar-closed {
