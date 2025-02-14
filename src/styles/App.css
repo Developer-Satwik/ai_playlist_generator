@@ -60,11 +60,10 @@ body {
 
 .app {
   min-height: 100vh;
-  background: var(--primary-bg);
-  color: var(--text-primary);
   display: flex;
   position: relative;
   overflow-x: hidden;
+  background: transparent;
 }
 
 .main-content {
@@ -72,9 +71,9 @@ body {
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   transition: margin-left 0.3s ease;
-  background: var(--primary-bg);
   position: relative;
   z-index: 1;
+  background: transparent;
 }
 
 .main-content.sidebar-closed {

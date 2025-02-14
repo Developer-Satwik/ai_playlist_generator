@@ -1,8 +1,20 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/HomeScreen.css';
 
 const HomeScreen = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleStartLearning = () => {
+    if (user) {
+      navigate('/chat');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="home-screen">
       <div className="hero-section">
@@ -10,11 +22,11 @@ const HomeScreen = () => {
         <p>Your AI-powered companion for personalized learning journeys</p>
 
         <div className="cta-buttons">
-          <Link to="/chat" className="cta-button primary">
+          <button onClick={handleStartLearning} className="cta-button primary">
             Start Learning
             <i className="fas fa-arrow-right"></i>
-          </Link>
-          <Link to="/learning-paths" className="cta-button secondary">
+          </button>
+          <Link to={user ? "/learning-paths" : "/login"} className="cta-button secondary">
             Browse Paths
             <i className="fas fa-compass"></i>
           </Link>
