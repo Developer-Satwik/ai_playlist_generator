@@ -1,7 +1,10 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/NavBar.css';
 
 const NavBar = ({ isSidebarOpen, setIsSidebarOpen, onNewChat }) => {
+  const location = useLocation();
+  
   const handleNewChat = () => {
     if (onNewChat) {
       onNewChat();
@@ -55,18 +58,22 @@ const NavBar = ({ isSidebarOpen, setIsSidebarOpen, onNewChat }) => {
           </button>
 
           <div className="nav-links">
-            <a href="#" className="active">
+            <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
+              <i className="fas fa-home"></i>
+              <span>Home</span>
+            </Link>
+            <Link to="/chat" className={location.pathname === '/chat' ? 'active' : ''}>
               <i className="fas fa-message"></i>
               <span>Chat</span>
-            </a>
-            <a href="#">
+            </Link>
+            <Link to="/learning-paths" className={location.pathname === '/learning-paths' ? 'active' : ''}>
               <i className="fas fa-graduation-cap"></i>
               <span>Learning Paths</span>
-            </a>
-            <a href="#">
+            </Link>
+            <Link to="/history" className={location.pathname === '/history' ? 'active' : ''}>
               <i className="fas fa-history"></i>
               <span>History</span>
-            </a>
+            </Link>
           </div>
         </nav>
 

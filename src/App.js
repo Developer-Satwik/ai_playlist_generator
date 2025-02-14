@@ -6,7 +6,7 @@ import NavBar from './components/NavBar';
 import './styles/App.css';
 
 function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('dark');
 
   const handleNewChat = () => {
