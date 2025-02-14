@@ -122,17 +122,37 @@ export const getUserConversations = async () => {
     const user = auth.currentUser;
     if (!user) throw new Error('User must be authenticated');
 
-    const q = query(
-      collection(db, 'conversations'),
-      where('userId', '==', user.uid),
-      orderBy('updatedAt', 'desc')
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    try {
+      // Try with the compound query first
+      const q = query(
+        collection(db, 'conversations'),
+        where('userId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (indexError) {
+      // If index error occurs, fall back to simple query and manual sort
+      console.warn('Index not ready, falling back to simple query:', indexError);
+      const q = query(
+        collection(db, 'conversations'),
+        where('userId', '==', user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt);
+          const dateB = new Date(b.updatedAt || b.createdAt);
+          return dateB - dateA;
+        });
+    }
   } catch (error) {
     console.error('Error getting conversations:', error);
     throw error;

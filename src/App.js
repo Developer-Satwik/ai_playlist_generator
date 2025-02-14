@@ -7,6 +7,7 @@ import LearningPaths from './components/LearningPaths';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Profile from './components/Profile/Profile';
+import ConversationHistory from './components/ConversationHistory';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import './styles/App.css';
@@ -71,6 +72,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/history" 
+                element={
+                  <ProtectedRoute>
+                    <ConversationHistory />
                   </ProtectedRoute>
                 } 
               />
