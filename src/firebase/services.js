@@ -16,7 +16,8 @@ import {
   signOut, 
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from './config';
@@ -193,5 +194,14 @@ export const uploadFile = async (file, path) => {
     return downloadURL;
   } catch (error) {
     throw error;
+  }
+};
+
+// Reset password
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    throw new Error('Failed to send password reset email: ' + error.message);
   }
 }; 

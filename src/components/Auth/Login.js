@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, signInWithGoogle } from '../../firebase/services';
+import { loginUser, signInWithGoogle, resetPassword } from '../../firebase/services';
 import { useAuth } from '../../contexts/AuthContext';
 import './Auth.css';
 
@@ -9,6 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -46,6 +47,24 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+    try {
+      setError('');
+      setLoading(true);
+      await resetPassword(email);
+      setResetSent(true);
+      setError('');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -53,6 +72,7 @@ const Login = () => {
         <p className="auth-subtitle">Continue your learning journey</p>
 
         {error && <div className="auth-error">{error}</div>}
+        {resetSent && <div className="auth-success">Password reset email sent! Please check your inbox.</div>}
 
         <form onSubmit={handleEmailLogin} className="auth-form">
           <div className="form-group">
@@ -75,6 +95,14 @@ const Login = () => {
           </div>
           <button type="submit" className="auth-button" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
+          </button>
+          <button 
+            type="button" 
+            onClick={handleForgotPassword} 
+            className="forgot-password-button"
+            disabled={loading}
+          >
+            Forgot Password?
           </button>
         </form>
 

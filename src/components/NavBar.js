@@ -1,9 +1,14 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { logoutUser } from '../firebase/services';
 import '../styles/NavBar.css';
 
 const NavBar = ({ isSidebarOpen, setIsSidebarOpen, onNewChat }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   
   const handleNewChat = () => {
     if (onNewChat) {
@@ -16,6 +21,15 @@ const NavBar = ({ isSidebarOpen, setIsSidebarOpen, onNewChat }) => {
     if ((e.metaKey) && e.key === 'n') {
       e.preventDefault();
       handleNewChat();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
@@ -78,13 +92,38 @@ const NavBar = ({ isSidebarOpen, setIsSidebarOpen, onNewChat }) => {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User Avatar" />
-            <div className="user-info">
-              <span className="user-name">User</span>
-              <span className="user-status">Active</span>
+          {user ? (
+            <div 
+              className="user-profile"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
+              <img 
+                src={user.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
+                alt="User Avatar" 
+              />
+              <div className="user-info">
+                <span className="user-name">{user.displayName || 'User'}</span>
+                <span className="user-status">Active</span>
+              </div>
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  <Link to="/profile" className="dropdown-item">
+                    <i className="fas fa-user"></i>
+                    Profile Settings
+                  </Link>
+                  <button onClick={handleLogout} className="dropdown-item">
+                    <i className="fas fa-sign-out-alt"></i>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <div className="auth-buttons">
+              <Link to="/login" className="auth-button">Login</Link>
+              <Link to="/register" className="auth-button">Sign Up</Link>
+            </div>
+          )}
         </div>
       </aside>
     </>

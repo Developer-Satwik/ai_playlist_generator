@@ -1,3 +1,18 @@
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy,
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
+
 // Conversation history structure
 const CONVERSATION_STORAGE_KEY = 'learning_conversation_history';
 
@@ -33,114 +48,144 @@ const saveHistory = (history) => {
   }
 };
 
-// Add a new conversation entry
-export const addConversation = (topic, data) => {
+// Add a new conversation
+export const addConversation = async (topic, initialMessage) => {
   try {
-    const history = initializeHistory();
-    const newConversation = {
-      id: `conv_${Date.now()}`,
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    const conversationData = {
+      userId: user.uid,
       topic,
-      timestamp: getTimestamp(),
-      data: {
-        ...data,
-        interactions: data.interactions || []
-      }
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      messages: [{
+        type: 'bot',
+        content: initialMessage,
+        timestamp: new Date().toISOString()
+      }]
     };
 
-    history.conversations.unshift(newConversation);
-    saveHistory(history);
-    return newConversation;
+    const docRef = await addDoc(collection(db, 'conversations'), conversationData);
+    return {
+      id: docRef.id,
+      ...conversationData
+    };
   } catch (error) {
     console.error('Error adding conversation:', error);
     throw error;
   }
 };
 
-// Add an interaction to an existing conversation
-export const addInteraction = (conversationId, interaction) => {
+// Add a message to an existing conversation
+export const addMessage = async (conversationId, message) => {
   try {
-    const history = initializeHistory();
-    const conversationIndex = history.conversations.findIndex(
-      conv => conv.id === conversationId
-    );
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
 
-    if (conversationIndex === -1) {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
+
+    if (!conversationSnap.exists()) {
       throw new Error('Conversation not found');
     }
 
-    const newInteraction = {
-      id: `int_${Date.now()}`,
-      timestamp: getTimestamp(),
-      ...interaction
-    };
+    const conversation = conversationSnap.data();
+    if (conversation.userId !== user.uid) {
+      throw new Error('Unauthorized access to conversation');
+    }
 
-    history.conversations[conversationIndex].data.interactions.push(newInteraction);
-    saveHistory(history);
-    return newInteraction;
+    const updatedMessages = [...conversation.messages, {
+      ...message,
+      timestamp: new Date().toISOString()
+    }];
+
+    await updateDoc(conversationRef, {
+      messages: updatedMessages,
+      updatedAt: serverTimestamp()
+    });
+
+    return {
+      id: conversationId,
+      ...conversation,
+      messages: updatedMessages
+    };
   } catch (error) {
-    console.error('Error adding interaction:', error);
+    console.error('Error adding message:', error);
     throw error;
   }
 };
 
-// Get all conversations
-export const getConversations = () => {
+// Get all conversations for the current user
+export const getUserConversations = async () => {
   try {
-    const history = initializeHistory();
-    return history.conversations;
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    const q = query(
+      collection(db, 'conversations'),
+      where('userId', '==', user.uid),
+      orderBy('updatedAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
   } catch (error) {
     console.error('Error getting conversations:', error);
-    return [];
+    throw error;
   }
 };
 
 // Get a specific conversation by ID
-export const getConversationById = (conversationId) => {
+export const getConversation = async (conversationId) => {
   try {
-    const history = initializeHistory();
-    return history.conversations.find(conv => conv.id === conversationId);
-  } catch (error) {
-    console.error('Error getting conversation:', error);
-    return null;
-  }
-};
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
 
-// Update conversation data
-export const updateConversation = (conversationId, updates) => {
-  try {
-    const history = initializeHistory();
-    const conversationIndex = history.conversations.findIndex(
-      conv => conv.id === conversationId
-    );
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
 
-    if (conversationIndex === -1) {
+    if (!conversationSnap.exists()) {
       throw new Error('Conversation not found');
     }
 
-    history.conversations[conversationIndex] = {
-      ...history.conversations[conversationIndex],
-      ...updates,
-      lastUpdated: getTimestamp()
-    };
+    const conversation = conversationSnap.data();
+    if (conversation.userId !== user.uid) {
+      throw new Error('Unauthorized access to conversation');
+    }
 
-    saveHistory(history);
-    return history.conversations[conversationIndex];
+    return {
+      id: conversationId,
+      ...conversation
+    };
   } catch (error) {
-    console.error('Error updating conversation:', error);
+    console.error('Error getting conversation:', error);
     throw error;
   }
 };
 
 // Delete a conversation
-export const deleteConversation = (conversationId) => {
+export const deleteConversation = async (conversationId) => {
   try {
-    const history = initializeHistory();
-    const updatedConversations = history.conversations.filter(
-      conv => conv.id !== conversationId
-    );
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
 
-    saveHistory({ ...history, conversations: updatedConversations });
-    return true;
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
+
+    if (!conversationSnap.exists()) {
+      throw new Error('Conversation not found');
+    }
+
+    const conversation = conversationSnap.data();
+    if (conversation.userId !== user.uid) {
+      throw new Error('Unauthorized access to conversation');
+    }
+
+    await deleteDoc(conversationRef);
   } catch (error) {
     console.error('Error deleting conversation:', error);
     throw error;

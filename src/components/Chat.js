@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Survey from './Survey';
 import Playlist from './Playlist';
-import { addConversation, addInteraction } from '../services/conversationService';
+import { addConversation, addMessage, getUserConversations } from '../services/conversationService';
 import ConversationHistory from './ConversationHistory';
 import '../styles/Chat.css';
+import { useAuth } from '../contexts/AuthContext';
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
@@ -28,7 +29,8 @@ const formatTimestamp = (timestamp) => {
   }
 };
 
-function Chat({ onStartNewChat }) {
+function Chat() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState([
     {
       type: 'bot',
@@ -37,25 +39,19 @@ function Chat({ onStartNewChat }) {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [isGeneratingPlaylist, setIsGeneratingPlaylist] = useState(false);
   const [currentTopic, setCurrentTopic] = useState('');
   const [conversationContext, setConversationContext] = useState([]);
   const [showCommands, setShowCommands] = useState(false);
   const [filteredCommands, setFilteredCommands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(-1);
+
   const stopGeneratingRef = useRef(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
-  const [currentConversationId, setCurrentConversationId] = useState(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [selectedCommandIndex, setSelectedCommandIndex] = useState(-1);
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
 
   const scrollToBottom = (force = false) => {
     if (shouldAutoScrollRef.current || force) {
@@ -78,7 +74,6 @@ function Chat({ onStartNewChat }) {
     const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 50;
     
     shouldAutoScrollRef.current = isAtBottom;
-    setShowScrollButton(!isAtBottom);
   };
 
   useEffect(() => {
@@ -94,32 +89,14 @@ function Chat({ onStartNewChat }) {
   }, [messages]);
 
   useEffect(() => {
-    if (onStartNewChat) {
-      onStartNewChat(() => {
-        setMessages([{
-          type: 'bot',
-          content: "Hi! I'm your Learning Assistant. I can help you find learning resources and create personalized playlists. Type '/' to see available commands or ask me anything!",
-          timestamp: new Date().toISOString()
-        }]);
-        setInputValue('');
-        setIsGeneratingPlaylist(false);
-        setCurrentTopic('');
-        setConversationContext([]);
-        setShowCommands(false);
-      });
+    if (user) {
+      loadConversations();
     }
-  }, [onStartNewChat]);
-
-  useEffect(() => {
-    // Load conversations when component mounts
-    loadConversations();
-  }, []);
+  }, [user]);
 
   const loadConversations = async () => {
     try {
-      // This is a placeholder - implement actual conversation loading logic
-      const loadedConversations = []; // Replace with actual API call
-      setConversations(loadedConversations);
+      const loadedConversations = await getUserConversations();
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
@@ -133,12 +110,7 @@ function Chat({ onStartNewChat }) {
     }]);
     setCurrentTopic('');
     setCurrentConversationId(null);
-    setSelectedConversation(null);
     setConversationContext([]);
-  };
-
-  const toggleSidebar = () => {
-    setShowSidebar(!showSidebar);
   };
 
   const stopGeneration = () => {
@@ -150,11 +122,9 @@ function Chat({ onStartNewChat }) {
     const chars = text.split('');
     const typingSpeed = 10;
     stopGeneratingRef.current = false;
-    setIsGenerating(true);
     
     for (let i = 0; i < chars.length; i++) {
       if (stopGeneratingRef.current) {
-        setIsGenerating(false);
         return displayText;
       }
 
@@ -186,7 +156,6 @@ function Chat({ onStartNewChat }) {
       await new Promise(resolve => setTimeout(resolve, typingSpeed));
     }
     
-    setIsGenerating(false);
     return text;
   };
 
@@ -253,27 +222,6 @@ function Chat({ onStartNewChat }) {
 
     try {
       let conversationId = currentConversationId;
-
-      // Create a new conversation if one doesn't exist
-      if (!conversationId) {
-        const topic = currentTopic || 'Untitled Conversation';
-        try {
-          const newConversation = await addConversation(topic, {
-            interactions: []
-          });
-          conversationId = newConversation.id;
-          setCurrentConversationId(conversationId);
-        } catch (error) {
-          console.error('Error creating conversation:', error);
-          setMessages(prev => [...prev, {
-            type: 'bot',
-            content: "Error creating conversation. Please try again.",
-            timestamp: new Date().toISOString()
-          }]);
-          return;
-        }
-      }
-
       const userMessage = {
         type: 'user',
         content: inputValue.trim(),
@@ -305,10 +253,20 @@ function Chat({ onStartNewChat }) {
       }]);
 
       try {
-        // Save the interaction
-        await addInteraction(conversationId, userMessage);
+        // Create a new conversation if one doesn't exist
+        if (!conversationId) {
+          const newConversation = await addConversation(
+            currentTopic || 'New Conversation',
+            messages[0].content
+          );
+          conversationId = newConversation.id;
+          setCurrentConversationId(conversationId);
+        }
 
-        // Process the message
+        // Add the user message to the conversation
+        await addMessage(conversationId, userMessage);
+
+        // Process the message with AI
         if (userMessage.content.startsWith('/')) {
           const [command, ...args] = userMessage.content.split(' ');
           const topic = args.join(' ');
@@ -347,14 +305,11 @@ function Chat({ onStartNewChat }) {
                           timestamp: new Date().toISOString()
                         }
                       ]);
-                      setIsGeneratingPlaylist(false);
-                      setCurrentTopic('');
                     }}
                   />,
                   timestamp: new Date().toISOString()
                 }]);
               } else {
-                setIsGeneratingPlaylist(true);
                 const text = "What topic would you like to learn about?";
                 await typeText(text);
               }
@@ -388,6 +343,13 @@ function Chat({ onStartNewChat }) {
           const response = await result.response;
           const text = response.text();
           
+          const botMessage = {
+            type: 'bot',
+            content: text,
+            timestamp: new Date().toISOString()
+          };
+
+          await addMessage(conversationId, botMessage);
           await typeText(text);
 
           setConversationContext(prev => [...prev, 
@@ -395,6 +357,9 @@ function Chat({ onStartNewChat }) {
             { role: 'model', parts: text }
           ]);
         }
+
+        // Refresh conversations list
+        loadConversations();
       } catch (error) {
         console.error('Error processing message:', error);
         setMessages(prev => prev.filter(msg => msg.timestamp !== userMessage.timestamp));
@@ -403,8 +368,6 @@ function Chat({ onStartNewChat }) {
           content: "Sorry, there was an error processing your message. Please try again.",
           timestamp: new Date().toISOString()
         }]);
-      } finally {
-        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error in handleSend:', error);
@@ -413,23 +376,13 @@ function Chat({ onStartNewChat }) {
         content: "An error occurred. Please try again later.",
         timestamp: new Date().toISOString()
       }]);
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleTopicChange = (event) => {
     setCurrentTopic(event.target.value);
-  };
-
-  const handleSelectConversation = (conversation) => {
-    setCurrentConversationId(conversation.id);
-    setCurrentTopic(conversation.topic);
-    setMessages(conversation.data.interactions);
-    setShowHistory(false);
-  };
-
-  const toggleHistory = () => {
-    setShowHistory(prev => !prev);
   };
 
   return (

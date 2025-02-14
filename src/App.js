@@ -6,6 +6,7 @@ import NavBar from './components/NavBar';
 import LearningPaths from './components/LearningPaths';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+import Profile from './components/Profile/Profile';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import './styles/App.css';
@@ -19,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
   }
   
   if (!user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/login" />;
   }
   
   return children;
@@ -62,6 +63,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <LearningPaths />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
                   </ProtectedRoute>
                 } 
               />
