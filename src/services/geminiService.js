@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the API with error handling
+// Initialize the API with error handling and configuration
 let genAI;
 try {
   genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
@@ -8,61 +8,112 @@ try {
   console.error('Error initializing Gemini API:', error);
 }
 
+// Safety configuration for the model
+const safetySettings = [
+  {
+    category: 'HARM_CATEGORY_HARASSMENT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_HATE_SPEECH',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+];
+
+// Generation configuration for better outputs
+const generationConfig = {
+  temperature: 0.7,
+  topK: 40,
+  topP: 0.95,
+  maxOutputTokens: 2048,
+};
+
+// Helper function to extract and parse JSON from model response
+const extractAndParseJSON = (text) => {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON object found in response');
+  }
+  
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error('JSON parsing error:', error);
+    throw new Error('Could not parse JSON from response');
+  }
+};
+
+// Helper function to validate topic
+const validateTopic = (topic) => {
+  if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+    throw new Error('Invalid topic provided');
+  }
+  return topic.trim();
+};
+
 export const generateSurveyQuestions = async (topic) => {
   try {
     if (!genAI) {
       throw new Error('Gemini API not initialized properly');
     }
 
-    console.log('Using API Key:', process.env.REACT_APP_GEMINI_API_KEY);
+    const validatedTopic = validateTopic(topic);
+    console.log('Generating survey questions for topic:', validatedTopic);
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-pro',
+      safetySettings,
+      generationConfig,
+    });
     
-    const prompt = `You are a learning expert. Create a survey to understand a user's learning preferences for: "${topic}".
+    const prompt = `As an expert learning consultant, create a comprehensive survey to understand a user's learning preferences, goals, and background for: "${validatedTopic}".
+
+    The response must be a valid JSON object containing an array of questions that cover:
+    1. Current knowledge level
+    2. Learning style preferences
+    3. Time commitment
+    4. Specific areas of interest within the topic
+    5. Learning goals and objectives
+    6. Preferred content format
+    7. Previous learning experiences
     
-    The response must be a valid JSON object containing an array of questions.
-    
-    Required format:
+    Required JSON format:
     {
       "questions": [
         {
-          "id": "q1",
-          "question": "What is your current level of knowledge in ${topic}?",
-          "type": "multiple-choice",
-          "options": ["Beginner", "Intermediate", "Advanced"]
-        },
-        {
-          "id": "q2",
-          "question": "How much time can you dedicate to learning ${topic} per day?",
-          "type": "multiple-choice",
-          "options": ["30 minutes", "1 hour", "2+ hours"]
+          "id": "string",
+          "question": "string",
+          "type": "multiple-choice" | "rating" | "text" | "checkbox",
+          "options": ["array of options"] (for multiple-choice and checkbox),
+          "min": number (for rating),
+          "max": number (for rating),
+          "required": boolean,
+          "category": "knowledge" | "preferences" | "goals" | "background"
         }
-      ]
+      ],
+      "metadata": {
+        "topic": "string",
+        "difficulty_levels": ["string"],
+        "estimated_completion_time": "string"
+      }
     }
-    
-    Create 5 relevant questions for ${topic}. Make sure the response is a properly formatted JSON object that can be parsed.`;
+
+    Create 8-10 relevant questions. Ensure questions are engaging, clear, and help create a personalized learning experience.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
     console.log('Raw API Response:', text);
-    
-    // Try to extract JSON if it's wrapped in other text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const jsonData = JSON.parse(jsonMatch[0]);
-        console.log('Parsed JSON:', jsonData);
-        return jsonData;
-      } catch (parseError) {
-        console.error('Error parsing matched JSON:', parseError);
-        throw new Error('Could not parse JSON from response');
-      }
-    } else {
-      console.error('No JSON object found in response');
-      throw new Error('Invalid response format: No JSON object found');
-    }
+    return extractAndParseJSON(text);
   } catch (error) {
     console.error('Error in generateSurveyQuestions:', error);
     throw error;
@@ -75,51 +126,188 @@ export const analyzeSurveyResponses = async (topic, responses) => {
       throw new Error('Gemini API not initialized properly');
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const validatedTopic = validateTopic(topic);
+    console.log('Analyzing survey responses for topic:', validatedTopic);
+
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-pro',
+      safetySettings,
+      generationConfig,
+    });
     
-    const prompt = `Based on these learning preferences for "${topic}":
+    const prompt = `As an expert learning consultant, analyze these learning preferences for "${validatedTopic}":
     ${JSON.stringify(responses, null, 2)}
     
-    Generate learning recommendations in this JSON format:
+    Generate detailed learning recommendations in this JSON format:
     {
-      "difficulty": "beginner" | "intermediate" | "advanced",
-      "videoDuration": "short" | "medium" | "long",
-      "searchKeywords": ["keyword1", "keyword2"],
+      "learnerProfile": {
+        "level": "beginner" | "intermediate" | "advanced",
+        "learningStyle": "visual" | "auditory" | "reading/writing" | "kinesthetic",
+        "timeCommitment": "string",
+        "strengths": ["string"],
+        "areasForImprovement": ["string"]
+      },
+      "contentPreferences": {
+        "videoDuration": "short" | "medium" | "long",
+        "contentTypes": ["video", "article", "interactive", "project"],
+        "difficulty": "beginner" | "intermediate" | "advanced"
+      },
+      "searchKeywords": {
+        "primary": ["string"],
+        "secondary": ["string"],
+        "advanced": ["string"]
+      },
       "learningPath": {
+        "estimatedDuration": "string",
         "stages": [
           {
             "name": "string",
             "description": "string",
-            "keywords": ["keyword1", "keyword2"]
+            "objectives": ["string"],
+            "keywords": ["string"],
+            "recommendedResources": {
+              "videoTopics": ["string"],
+              "projectIdeas": ["string"],
+              "practiceExercises": ["string"]
+            }
           }
         ]
+      },
+      "additionalRecommendations": {
+        "tools": ["string"],
+        "communities": ["string"],
+        "practiceResources": ["string"]
       }
     }
     
-    Ensure the response is a valid JSON object.`;
+    Provide comprehensive recommendations that align with the user's goals and learning style.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
     console.log('Raw Analysis Response:', text);
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const jsonData = JSON.parse(jsonMatch[0]);
-        console.log('Parsed Analysis JSON:', jsonData);
-        return jsonData;
-      } catch (parseError) {
-        console.error('Error parsing analysis JSON:', parseError);
-        throw new Error('Could not parse JSON from analysis response');
-      }
-    } else {
-      console.error('No JSON object found in analysis response');
-      throw new Error('Invalid response format: No JSON object found');
-    }
+    return extractAndParseJSON(text);
   } catch (error) {
     console.error('Error analyzing survey responses:', error);
+    throw error;
+  }
+};
+
+export const generateLearningInsights = async (topic, learningHistory) => {
+  try {
+    if (!genAI) {
+      throw new Error('Gemini API not initialized properly');
+    }
+
+    const validatedTopic = validateTopic(topic);
+    console.log('Generating learning insights for topic:', validatedTopic);
+
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-pro',
+      safetySettings,
+      generationConfig,
+    });
+    
+    const prompt = `As an expert learning consultant, analyze this learning history for "${validatedTopic}":
+    ${JSON.stringify(learningHistory, null, 2)}
+    
+    Generate personalized insights and recommendations in this JSON format:
+    {
+      "progress": {
+        "completedTopics": ["string"],
+        "masteredConcepts": ["string"],
+        "challengingAreas": ["string"],
+        "timeSpent": "string",
+        "learningPace": "string"
+      },
+      "insights": {
+        "strengths": ["string"],
+        "patterns": ["string"],
+        "recommendations": ["string"]
+      },
+      "nextSteps": {
+        "immediateActions": ["string"],
+        "shortTermGoals": ["string"],
+        "longTermGoals": ["string"]
+      },
+      "adaptiveSuggestions": {
+        "contentAdjustments": ["string"],
+        "paceAdjustments": ["string"],
+        "focusAreas": ["string"]
+      }
+    }
+    
+    Provide actionable insights that help improve the learning experience.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log('Raw Insights Response:', text);
+    return extractAndParseJSON(text);
+  } catch (error) {
+    console.error('Error generating learning insights:', error);
+    throw error;
+  }
+};
+
+export const generateQuizQuestions = async (topic, learningStage) => {
+  try {
+    if (!genAI) {
+      throw new Error('Gemini API not initialized properly');
+    }
+
+    const validatedTopic = validateTopic(topic);
+    console.log('Generating quiz questions for topic:', validatedTopic);
+
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-pro',
+      safetySettings,
+      generationConfig,
+    });
+    
+    const prompt = `As an expert educator, create engaging quiz questions for "${validatedTopic}" at the ${learningStage} level.
+    
+    Generate questions in this JSON format:
+    {
+      "quiz": {
+        "topic": "string",
+        "level": "string",
+        "timeLimit": "string",
+        "questions": [
+          {
+            "id": "string",
+            "type": "multiple-choice" | "true-false" | "short-answer",
+            "question": "string",
+            "options": ["string"] (for multiple-choice),
+            "correctAnswer": "string",
+            "explanation": "string",
+            "difficulty": "easy" | "medium" | "hard",
+            "conceptTested": "string"
+          }
+        ]
+      },
+      "metadata": {
+        "totalPoints": number,
+        "passingScore": number,
+        "recommendations": {
+          "beforeQuiz": ["string"],
+          "afterQuiz": ["string"]
+        }
+      }
+    }
+    
+    Create 5-7 questions that test understanding and application of concepts.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log('Raw Quiz Response:', text);
+    return extractAndParseJSON(text);
+  } catch (error) {
+    console.error('Error generating quiz questions:', error);
     throw error;
   }
 };

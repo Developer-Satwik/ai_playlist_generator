@@ -1,17 +1,82 @@
+# Instructions
+
+During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+
+You should also use the `.cursorrules` file as a Scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the Scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
+[X] Task 1
+[ ] Task 2
+
+Also update the progress of the task in the Scratchpad when you finish a subtask.
+Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
+The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+
+# Project Analysis
+
+## Project Structure
+The Learning Playlist Generator is a React-based web application with the following structure:
+
+### Core Files
+- `src/App.js`: Main application component using React Router for navigation
+- `src/index.js`: Application entry point using React 18's createRoot
+- `public/index.html`: HTML template with Font Awesome and Inter font integration
+
+### Key Directories
+1. Components (/src/components/):
+   - Navigation: Header.js, Footer.js, NavBar.js
+   - Core Features: Chat.js, Survey.js, Quiz.js, Playlist.js
+   - UI Components: HomeScreen.js, ConversationHistory.js
+
+2. Services (/src/services/):
+   - AI Integration: geminiService.js, genAI.js
+   - External APIs: youtubeService.js
+   - State Management: conversationService.js
+
+3. Styles (/src/styles/):
+   - Component-specific CSS files matching each component
+   - Global styles in App.css
+
+## Technical Stack
+- Frontend Framework: React with React Router
+- UI Components: Custom components with CSS styling
+- External Services: YouTube API, Gemini AI
+- Styling: CSS with Font Awesome icons and Inter font family
+
+## Key Learnings
+1. Project Structure:
+   - Organized component-based architecture
+   - Separation of concerns between components, services, and styles
+   - Modular CSS approach with component-specific stylesheets
+
+2. Features:
+   - AI-powered conversation system
+   - YouTube integration for playlist generation
+   - Interactive quiz and survey system
+   - Conversation history management
+
+3. UI/UX:
+   - Responsive design patterns
+   - Modern styling with custom CSS
+   - Font Awesome integration for icons
+   - Inter font family for typography
+
+# Tools
+
+[Previous tools section content...]
+
+# Lessons
+
+## User Specified Lessons
+
+[Previous lessons content...]
+
+## Project Specific Lessons
+- React Router v6 implementation for navigation
+- Component-based architecture with separate styling files
+- Integration of AI services (Gemini) with frontend
+- YouTube API integration for playlist functionality
+- Conversation state management patterns
+- Modern CSS styling practices with component isolation
+
 # Scratchpad
 
-Current Task: Push code to GitHub repository (https://github.com/Developer-Satwik/ai_playlist_generator)
-
-Steps:
-[ ] Initialize Git repository (if not already initialized)
-[ ] Configure Git remote
-[ ] Stage all files (excluding node_modules and other ignored files)
-[ ] Create initial commit
-[ ] Push to GitHub repository
-
-Progress:
-- Workspace contains a Node.js project with:
-  - src/ directory
-  - public/ directory
-  - package.json and package-lock.json
-  - .env and .gitignore files 
+[Current task progress...]
